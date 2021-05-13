@@ -1,0 +1,89 @@
+{
+    box-sizing: border-box;
+}
+.columnLeft {
+float: left;
+width: 50%;
+}
+
+.columnMid {
+float: left;
+width: 40%;
+}
+
+.columnRight {
+float: left;
+width: 1%;
+}
+
+.row:after {
+content: "";
+display: table;
+clear: both;
+}
+
+.slider {
+  	width: 25%; 
+}
+
+.dropdown-submenu {
+  position: relative;
+}
+
+.dropdown-submenu .dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -1px;
+}
+
+span {
+	display: inline-block;
+  	width: 100px;
+	font-weight: 1000;
+	font-family: Garamond;
+}
+
+label {
+	display: inline-block; 
+	width: 350px; 
+	text-align: right; 
+	font-size: 20px; 
+	font-weight: 700; 
+	font-family: Garamond; 
+	padding-right: 20px;
+	}
+
+h1 {
+	font-size: 28px;
+	font-weight: 800;
+	font-family: Garamond;
+	text-align: center;
+	color: #404080;
+	}
+h2 {
+	font-size: 28px;
+	font-weight: 800;
+	font-family: Garamond;
+	text-align: center;
+}
+
+body {
+	background-color: white;
+}
+li{
+	margin: 10px 0;
+	font-size: 20px;
+}
+footer {
+	display: inline-block; 
+	width: 350px; 
+	text-align: left; 
+	font-size: 20px; 
+	font-family: Garamond;
+	padding-left: 60px
+}
+
+.grid line {
+  stroke: lightgrey;
+  stroke-opacity: 1;
+}

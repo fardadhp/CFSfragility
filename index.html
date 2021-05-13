@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+	<link href="style.css" rel="stylesheet">
+	<link href='https://fonts.googleapis.com/css?family=PT+Sans:700' rel='stylesheet' type='text/css'>
+	<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,italic,400italic,600italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+	<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.js"></script>
+	<script src="https://d3js.org/d3.v4.js"></script>
+	<script src=https://cdnjs.cloudflare.com/ajax/libs/mathjs/3.3.0/math.min.js></script>
+
+</head>
+<body>
+  <h1>Updated Seismic Fragility Functions for Cold-Formed Steel Framed Shear Walls per FEMA P-58 Methodology</h1>
+  <p><a id="ghiq" href="https://engrxiv.org/cf724/" target="_blank">Reference</a></p>
+	<div class="row">
+		<div class="columnLeft">
+		  <div id="fragilityPlot"></div>
+		</div>
+		<div class="columnMid">
+		  <div id="form">
+			<h2>Select shear wall</h2>
+			<p>
+			  <label>Type: </label><select name="type" id="type">
+				<option value="" selected="selected">Select type</option>
+			  </select>
+			</p>
+			<p>
+			  <label>Material: </label><select name="material" id="material">
+				<option value="" selected="selected">Select material</option>
+			  </select>
+			</p>
+			<p>
+			  <label>Conform to S400-15 </label>
+			  <input type="checkbox" class="checkboxselect" id="s400">
+			</p>
+			<p>
+			  <label>S400 Criteria: </label><select name="s400-loc" disabled="true" id="s400-loc">
+				<option value="" selected="selected">Select Criteria</option>
+			  </select>
+			</p>
+			<p>
+			  <label>sotry drift ratio (%)</label>
+			  <input type="text" id="sdr" name="sdr" value="1.0">
+			</p>
+			<p>
+			  <input type="button" id="button" value="Submit">
+			</p>
+		  </div>
+		  <div id="results">
+			<p>Probablity of exceeding DS 1 = <span id="ds1-value">…</span></p>
+			<p>Probablity of exceeding DS 2 = <span id="ds2-value">…</span></p>
+			<p>Probablity of exceeding DS 3 = <span id="ds3-value">…</span></p>
+		  </div>
+		</div>
+	</div>
+</body>
+
+
+<script>
+// set the dimensions and margins of the graph
+var margin = {top: 40, right: 10, bottom: 80, left: 80},
+  width = 700 - margin.left - margin.right,
+  height = 400 - margin.top - margin.bottom;
+
+ var xmax = 6;
+
+// append the svg object to the body of the page
+var plotID = ["#fragilityPlot"];
+var svg = d3.range(plotID.length);
+for (let i = 0; i<plotID.length; i++) {
+  svg[i] = d3.select(plotID[i])
+	.append("svg")
+	.attr("width", width + margin.left + margin.right)
+	.attr("height", height + margin.top + margin.bottom)
+	.append("g")
+	.attr("transform",
+		  "translate(" + margin.left + "," + margin.top + ")");
+};
+
+// Define the line
+  var valueline0 = d3.line()
+	.x(function(d,i) { return xAxis(i/100) })
+	.y(function(d) { return yAxis0(d) });
+
+  // Add X axis
+  xAxis = d3.scaleLinear()
+	.domain( [0, xmax])
+	.range([0, width]);
+
+  for (let i = 0; i<plotID.length; i++) {
+	svg[i].append("g")
+	  .attr('id', 'x')
+	  .attr('class', 'x')
+	  .attr("transform", "translate(0," + height + ")")
+	  .call(d3.axisBottom(xAxis)
+		.tickValues(Array.from(new Array(xmax+1),(val,index)=>index*1))
+		.tickFormat((d,i) => Array.from(new Array(xmax+1),(val,index)=>index)[i]))
+	  .selectAll(".tick text")
+	  .attr("font-size","16")
+	  .attr("font-family","cursive");
+	// X axis label
+	svg[i].append("text")             
+		.attr("transform",
+			  "translate(" + (width/2) + " ," + 
+							 (height + margin.top + 10) + ")")
+		.style("text-anchor", "middle")
+		.text("Story Drift Ratio (%)")
+		.attr("font-size","18")
+		.attr("font-family","cursive")
+  };
+
+  // Add Y axis
+  yAxis0 = d3.scaleLinear()
+	.domain( [0, 1])
+	.range([height, 0]);
+
+  var yAxes = [yAxis0]
+
+  svg[0].append("g")
+	.attr('class', 'y')
+	.call(d3.axisLeft(yAxis0)
+	  .tickValues(Array.from(new Array(11),(val,index)=>index*0.2)))
+	.selectAll(".tick text")
+	.attr("font-size","16")
+	.attr("font-family","cursive");
+  
+  for (let i = 0; i<plotID.length; i++) {
+	// y axis label
+	svg[i].append("text")
+		.attr("transform", "rotate(-90)")
+		.attr("y", 0 - margin.left)
+		.attr("x",0 - (height / 2))
+		.attr("dy", "1em")
+		.style("text-anchor", "middle")
+		.text("Prob. Exceedance")
+		.attr("font-size","20")
+		.attr("font-family","cursive")
+  };
+
+  // title
+  svg[0].append("text")
+	.attr("x", (width / 2))             
+	.attr("y", 0 - (margin.top / 2))
+	.attr("text-anchor", "middle")  
+	.style("font-size", "20px") 
+	.text("Fragility Curves")
+	.attr("font-family","cursive");
+
+  // add the X gridlines
+  for (let i = 0; i<plotID.length; i++) {
+	svg[i].append("g") 
+		.attr('id', 'xGrid')   
+		.attr("class", "grid")
+		.attr("transform", "translate(0," + height + ")")
+		.call(make_x_gridlines())
+  };
+  // add the Y gridlines
+  svg[0].append("g")     
+	  .attr("class", "grid")
+	  .call(make_y_gridlines0());
+
+  // Add border
+  for (let i = 0; i<plotID.length; i++) {
+	svg[i].append("rect")
+	  .attr("x", 0)
+	  .attr("y", 0)
+	  .attr("height", height)
+	  .attr("width", width)
+	  .style("stroke", "black")
+	  .style("fill", "none")
+	  .style("stroke-width", 1.5)
+  };
+
+  function make_x_gridlines() {   
+	  return d3.axisBottom(xAxis)
+		.ticks(xmax+1)
+		.tickSize(-height)
+		.tickFormat("")
+		  
+  };
+  // gridlines in y axis function
+  function make_y_gridlines0() {   
+	  return d3.axisLeft(yAxis0)
+		.ticks(11)
+		.tickSize(-width)
+		.tickFormat("")
+  };
+
+function makeArr(startValue, stopValue, step) {
+	var arr = [];
+	var cardinality = (stopValue - startValue) / step + 1;
+	for (var i = 0; i < cardinality; i++) {
+		arr.push(startValue + (step * i));
+	}
+	return arr;
+};
+
+function normalCDF(X, mu, sigma) {
+	output = [];
+	for (var i = 0; i < X.length; i++) {
+		var v = (X[i] - mu) / sigma;
+		var T = 1 / (1 + 0.2316419 * Math.abs(v));
+		var D = 0.3989423 * Math.exp(-v * v / 2);
+		var prob = D * T * (0.3193815 + T * (-0.3565638 + T * (1.781478 + T * (-1.821256 + T * 1.330274))));
+		if (v > 0) {
+			prob = 1 - prob;
+		};
+		output.push(prob);
+	};
+	return output;
+};
+	
+  	xcor = makeArr(0, xmax, 0.01);
+	ycor = [];
+	initTheta = [1,2,3];
+	initBeta = [0.5,0.5,0.5];
+	for (var i = 0; i < 3; i++) {
+		ycor[i] = normalCDF(xcor, initTheta[i], initBeta[i]);
+	};
+
+	svg[0].append("path")
+		.datum(ycor[0])
+		.attr('id', 'ds1')
+		.attr('class', 'line')
+		.attr("fill", "none")
+		.attr("stroke", "blue")
+		.attr("stroke-width", 1.5)
+		.attr("d", valueline0);
+ 	svg[0].append("path") 
+ 		.datum(ycor[1])
+		.attr('id', 'ds2')
+		.attr('class', 'line')
+		.attr("fill", "none")
+		.attr("stroke", "red")
+		.attr("stroke-width", 1.5)
+		.attr("d", valueline0);
+	svg[0].append("path")
+		.datum(ycor[2])
+		.attr('id', 'ds3')
+		.attr('class', 'line')
+		.attr("fill", "none")
+		.attr("stroke", "green")
+		.attr("stroke-width", 1.5)
+		.attr("d", valueline0);
+
+  // Legend
+  for (let i = 0; i<plotID.length; i++) {
+	svg[i].append("rect").attr("x",width-25).attr("y",10).attr("width", 15).attr("height", 15).style("fill", "blue").style('opacity', 0.8);
+	svg[i].append("rect").attr("x",width-25).attr("y",30).attr("width", 15).attr("height", 15).style("fill", "red").style('opacity', 0.8);
+	svg[i].append("rect").attr("x",width-25).attr("y",50).attr("width", 15).attr("height", 15).style("fill", "green").style('opacity', 0.8);
+	svg[i].append("text").attr("x", width-70).attr("y", 20).text("DS 1").style("font-size", "14px").attr("alignment-baseline","middle");
+	svg[i].append("text").attr("x", width-70).attr("y", 40).text("DS 2").style("font-size", "14px").attr("alignment-baseline","middle");
+	svg[i].append("text").attr("x", width-70).attr("y", 60).text("DS 3").style("font-size", "14px").attr("alignment-baseline","middle");
+  };
+
+  var typeOptions = {
+	"WSP Sheathing": {
+	  "OSB": ["US", "Canada"],
+	  "DFP": ["US", "Canada"],
+	  "CSP": ["Canada"],
+	  "unspecified": ["US", "Canada"]
+	},
+	"Steel Sheet Sheathing": {
+	  "steel": ["US", "Canada"]
+	},
+	"Flat Strap X-Bracing": {
+	  "33 ksi steel": ["US", "Canada"],
+	  "50 ksi steel": ["US", "Canada"],
+	  "unspecified": ["US", "Canada"]
+	}
+  }
+
+  window.onload = function() {
+	d3.csv("https://raw.githubusercontent.com/fardadhp/CFSfragility/main/fragility_parameters.csv", function (data) {
+		var typeSel = document.getElementById("type");
+		var materialSel = document.getElementById("material");
+		var s400Sel = document.getElementById("s400");
+		var s400CriteriaSel = document.getElementById("s400-loc");
+		for (var x in typeOptions) {
+		  typeSel.options[typeSel.options.length] = new Option(x, x);
+		}
+		typeSel.onchange = function() {
+		  materialSel.length = 1;
+		  s400CriteriaSel.length = 1;
+		  for (var y in typeOptions[this.value]) {
+			materialSel.options[materialSel.options.length] = new Option(y, y);
+		  }
+		}
+		materialSel.onchange = function() {
+		  s400CriteriaSel.length = 1;
+		  var z = typeOptions[typeSel.value][this.value];
+		  for (var i = 0; i < z.length; i++) {
+			s400CriteriaSel.options[s400CriteriaSel.options.length] = new Option(z[i], z[i]);
+		  }
+		};
+
+		s400Sel.onchange = function() {
+			if (document.getElementById("s400").checked == true) {
+				document.getElementById("s400-loc").disabled = false;
+			} else {
+				document.getElementById("s400-loc").disabled = true;
+			};
+			s400CriteriaSel.length = 1;
+			var z = typeOptions[typeSel.value][materialSel.value];
+			for (var i = 0; i < z.length; i++) {
+				s400CriteriaSel.options[s400CriteriaSel.options.length] = new Option(z[i], z[i]);
+			}
+		};
+
+		const button = document.getElementById('button');
+		button.addEventListener('click', updatePlot);
+
+		function updatePlot() {
+			var typeSel = document.getElementById("type");
+			var materialSel = document.getElementById("material");
+			var s400Sel = document.getElementById("s400");
+			var s400CriteriaSel = document.getElementById("s400-loc");
+			var sdrValue = parseFloat(document.getElementById("sdr").value);
+			parms = getParameters(data,typeSel.value,materialSel.value,s400Sel.checked,s400CriteriaSel.value);
+			if (typeSel.value == 'Flat Strap X-Bracing') {
+				if (s400Sel.checked == false) {
+					xmax = 16;
+				} else {
+					switch (materialSel.value) {
+						case 'unspecified':
+							xmax = 22;
+							break;
+						case '33 ksi steel':
+							xmax = 10;
+							break;
+						case '50 ksi steel':
+							xmax = 16;
+							break;
+					}
+				}
+			} else {
+				xmax = 6;
+			};
+
+			xcor = makeArr(0, xmax, 0.01);
+			ycor = [];
+			for (var i = 0; i < 3; i++) {
+				ycor[i] = lognormalCDF(xcor, parms.theta[i], parms.beta[i]);
+			};
+
+
+			xAxis.domain([0, xmax]);
+			svg[0].selectAll("g#x.x")
+				.transition().duration(1000)
+				.call(d3.axisBottom(xAxis)
+					.tickValues(Array.from(new Array(xmax+1),(val,index)=>index*1))
+					.tickFormat((d,i) => Array.from(new Array(xmax+1),(val,index)=>index)[i]))
+				.selectAll(".tick text")
+	  			.attr("font-size","16");
+
+			svg[0].selectAll("g#xGrid.grid") 
+				.transition().duration(1000)   
+				.call(make_x_gridlines())
+
+			for (var i = 1; i < 4; i++) {
+				selectPath = "path#ds".concat(i.toString()).concat(".line");				
+				svg[0].selectAll(selectPath).transition()
+			    	.duration(1000)
+			  		.attr("d", valueline0(ycor[i-1]))
+			};
+
+			console.log(sdrValue);
+			console.log(lognormalCDF([sdrValue], parms.theta[0], parms.beta[0]));
+			document.getElementById('ds1-value').innerHTML = (Math.round(lognormalCDF([sdrValue], parms.theta[0], parms.beta[0])*100*100)/100).toString().concat(" %");
+			document.getElementById('ds2-value').innerHTML = (Math.round(lognormalCDF([sdrValue], parms.theta[1], parms.beta[1])*100*100)/100).toString().concat(" %");
+			document.getElementById('ds3-value').innerHTML = (Math.round(lognormalCDF([sdrValue], parms.theta[2], parms.beta[2])*100*100)/100).toString().concat(" %");
+		}
+
+
+		function getParameters(data,type,material,s400,s400Criteria) {
+			median=[], std=[], lillie = [];
+			if (type == "WSP Sheathing") {
+				if (material == "unspecified") {
+					type = "allWSP";
+		  		} else {
+					type = material;
+				}
+			} else {
+				if (type == "Steel Sheet Sheathing") {
+					type = "SS";
+				} else {
+			    	switch (material) {
+						case "unspecified":
+				  			type = "allX";
+				  			break;
+						case "33 ksi steel":
+				  			type = "X33";
+				  			break;
+						case "50 ksi steel":
+				  			type = "X50";
+				  			break;
+			  		}
+				}
+			};
+			if (s400 == true) {
+			  switch(s400Criteria) {
+				case "US":
+				  s400Criteria = "US";
+				  break;
+				case "Canada":
+				  s400Criteria = "CA";
+				  break;
+			  }
+			} else {
+			  s400Criteria = "NA";
+			};
+			for(var i=0; i<data.length; i++) { 
+			  if ((data[i]['type']==type) && (data[i]['S400USCA']==s400Criteria)) {
+				median.push(parseFloat(data[i]['Median']));
+				std.push(parseFloat(data[i]['logSD']));
+				lillie.push(parseInt(data[i]['Lilliefors']));
+			  }
+			};
+			return {theta:median, beta:std, test:lillie};
+		};
+
+		function lognormalCDF(X, mu, sigma) {
+			output = [];
+			for (var i = 0; i < X.length; i++) {
+				var v = Math.log(X[i] / mu) / sigma;
+				var T = 1 / (1 + 0.2316419 * Math.abs(v));
+				var D = 0.3989423 * Math.exp(-v * v / 2);
+				var prob = D * T * (0.3193815 + T * (-0.3565638 + T * (1.781478 + T * (-1.821256 + T * 1.330274))));
+				if (v > 0) {
+					prob = 1 - prob;
+				};
+				output.push(prob);
+			};
+			return output;
+		};
+	})
+}
+</script>
